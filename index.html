@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conservation of Momentum: 2D Inelastic Collisions</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f1f5f9;
+      color: #1e293b;
+      display: flex;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    .card {
+      background: #ffffff;
+      width: 100%;
+      max-width: 1040px;
+      border-radius: 18px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 12px 30px -6px rgba(0, 0, 0, 0.06), 0 8px 12px -6px rgba(0, 0, 0, 0.04);
+      padding: 24px 28px;
+    }
+
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      border-bottom: 2px solid #f1f5f9;
+      padding-bottom: 14px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .scoreboard {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 1.05rem;
+      font-weight: 800;
+    }
+    .score-correct { color: #16a34a; }
+    .score-incorrect { color: #dc2626; }
+
+    .stage-badge {
+      background: #e0f2fe;
+      color: #0369a1;
+      border: 1px solid #bae6fd;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 800;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 440px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .stage-box {
+      position: relative;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px;
+    }
+
+    svg {
+      width: 100%;
+      max-width: 410px;
+      height: 400px;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .grid-circle { fill: none; stroke: #e2e8f0; stroke-width: 1; }
+    .axis-line { stroke: #cbd5e1; stroke-width: 1.5; stroke-dasharray: 4 4; }
+    .origin-dot { fill: #0f172a; }
+    .compass-label { font-size: 12px; fill: #94a3b8; font-weight: 800; text-anchor: middle; dominant-baseline: central; }
+
+    .arrow-line { stroke-width: 4; stroke-linecap: round; }
+    .ghost-line { stroke-width: 3; stroke-dasharray: 5 4; fill: none; opacity: 0.6; }
+    
+    .vec-a { stroke: #0284c7; } /* Blue (Resultant) */
+    .vec-b { stroke: #9333ea; } /* Purple (Vertical) */
+    .vec-c { stroke: #ea580c; } /* Orange (Horizontal) */
+
+    .comp-proj { stroke: #38bdf8; stroke-width: 1.5; stroke-dasharray: 3 3; opacity: 0.85; }
+
+    .angle-arc { fill: none; stroke: #16a34a; stroke-width: 2.5; stroke-linecap: round; }
+    .angle-label { font-size: 11px; font-weight: 800; fill: #16a34a; dominant-baseline: central; }
+
+    .handle {
+      fill: #ffffff;
+      stroke-width: 3;
+      cursor: grab;
+      transition: r 0.15s ease;
+    }
+    .handle:hover { r: 9; }
+    .handle:active { cursor: grabbing; r: 10; }
+    .handle-a { stroke: #0284c7; }
+    .handle-b { stroke: #9333ea; }
+    .handle-c { stroke: #ea580c; }
+    .handle-locked { cursor: not-allowed; opacity: 0.4; pointer-events: none; }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .problem-id {
+      font-size: 0.75rem;
+      font-family: monospace;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
+    .stem-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 0.98rem;
+      line-height: 1.6;
+      color: #1e293b;
+      margin-bottom: 12px;
+    }
+
+    .nowrap { white-space: nowrap; }
+
+    .instruction-banner {
+      background: #ffedd5;
+      color: #9a3412;
+      border: 1px solid #fed7aa;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      line-height: 1.45;
+      margin-bottom: 14px;
+    }
+
+    .calc-card {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    .calc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .calc-title {
+      font-size: 0.92rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #475569;
+    }
+
+    .unit-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-tool {
+      background: #0284c7;
+      color: #ffffff;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      line-height: 1;
+      transition: background 0.15s;
+    }
+    .btn-tool:hover { background: #0369a1; }
+
+    .unit-tip {
+      font-size: 0.75rem;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .inputs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .input-group label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .label-blue { color: #0284c7; }
+    .label-purple { color: #9333ea; }
+    .label-orange { color: #ea580c; }
+
+    .input-group input {
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      outline: none;
+      transition: border 0.15s, box-shadow 0.15s;
+    }
+    .input-group input:focus {
+      border-color: #0284c7;
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+    }
+    .input-group input.field-warn {
+      border-color: #f59e0b;
+      background: #fffbeb;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    button.action-btn {
+      flex: 1;
+      padding: 11px 18px;
+      border-radius: 8px;
+      font-size: 0.98rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-check { background: #2563eb; color: white; }
+    .btn-check:hover { background: #1d4ed8; }
+    .btn-next { background: #16a34a; color: white; }
+    .btn-next:hover { background: #15803d; }
+    .btn-try { background: #64748b; color: white; }
+    .btn-try:hover { background: #475569; }
+
+    .warning-card {
+      display: none;
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fcd34d;
+      font-size: 0.88rem;
+      line-height: 1.45;
+      animation: fadeIn 0.15s ease-in-out;
+    }
+
+    .feedback-card {
+      display: none;
+      margin-top: 12px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      line-height: 1.5;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+    .feedback-card.success { background: #dcfce7; color: #14532d; border: 1px solid #bbf7d0; }
+    .feedback-card.error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="header-row">
+      <div>
+        <h1>Conservation of Momentum: 2D Inelastic Collisions</h1>
+      </div>
+      <div class="scoreboard">
+        <span class="stage-badge" id="lblStageBadge">Stage 1: Vector Diagram</span>
+        <span class="score-correct">Correct: <span id="lblCorrect">0</span></span>
+        <span class="score-incorrect">Incorrect: <span id="lblIncorrect">0</span></span>
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <!-- Left Column: Interactive Canvas Stage -->
+      <div>
+        <div class="stage-box">
+          <svg id="svgCanvas" viewBox="-200 -200 400 400">
+            <defs>
+              <marker id="arrow-a" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#0284c7" />
+              </marker>
+              <marker id="arrow-b" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#9333ea" />
+              </marker>
+              <marker id="arrow-c" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#ea580c" />
+              </marker>
+
+              <marker id="ghost-a" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#0284c7" opacity="0.6"/>
+              </marker>
+              <marker id="ghost-b" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#9333ea" opacity="0.6"/>
+              </marker>
+              <marker id="ghost-c" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#ea580c" opacity="0.6"/>
+              </marker>
+            </defs>
+
+            <circle cx="0" cy="0" r="50" class="grid-circle" />
+            <circle cx="0" cy="0" r="100" class="grid-circle" />
+            <circle cx="0" cy="0" r="150" class="grid-circle" />
+
+            <line x1="-185" y1="0" x2="185" y2="0" class="axis-line" />
+            <line x1="0" y1="-185" x2="0" y2="185" class="axis-line" />
+            
+            <text x="188" y="0" class="compass-label">E</text>
+            <text x="-188" y="0" class="compass-label">W</text>
+            <text x="0" y="-188" class="compass-label">N</text>
+            <text x="0" y="188" class="compass-label">S</text>
+
+            <line id="projLineX" x1="0" y1="0" x2="0" y2="0" class="comp-proj" />
+            <line id="projLineY" x1="0" y1="0" x2="0" y2="0" class="comp-proj" />
+
+            <path id="angleArc" d="" class="angle-arc" />
+            <text id="angleLabel" x="0" y="0" class="angle-label"></text>
+
+            <line id="ghostA" x1="0" y1="0" x2="0" y2="0" class="ghost-line vec-a" marker-end="url(#ghost-a)" display="none" />
+            <line id="ghostB" x1="0" y1="0" x2="0" y2="0" class="ghost-line vec-b" marker-end="url(#ghost-b)" display="none" />
+            <line id="ghostC" x1="0" y1="0" x2="0" y2="0" class="ghost-line vec-c" marker-end="url(#ghost-c)" display="none" />
+
+            <!-- Blue Resultant -->
+            <line id="vecA" x1="0" y1="0" x2="0" y2="140" class="arrow-line vec-a" marker-end="url(#arrow-a)" />
+            <circle id="handleA" cx="0" cy="140" r="7.5" class="handle handle-a" />
+
+            <!-- Purple Vertical Vector (pointing INTO origin) -->
+            <line id="vecB" x1="0" y1="50" x2="0" y2="0" class="arrow-line vec-b" marker-end="url(#arrow-b)" />
+            <circle id="handleB" cx="0" cy="50" r="7.5" class="handle handle-b" />
+
+            <!-- Orange Horizontal Vector (pointing INTO origin) -->
+            <line id="vecC" x1="50" y1="0" x2="0" y2="0" class="arrow-line vec-c" marker-end="url(#arrow-c)" />
+            <circle id="handleC" cx="50" cy="0" r="7.5" class="handle handle-c" />
+
+            <circle cx="0" cy="0" r="4.5" class="origin-dot" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- Right Column: Problem, Inputs, & Controls -->
+      <div>
+        <div class="meta-row">
+          <div class="problem-id" id="lblProblemId">ID: --------</div>
+          <div id="lblStageProgress" style="font-size:0.8rem; font-weight:700; color:#64748b;">Stage 1: [Blue Given: 0/2] • [Components Given: 0/2]</div>
+        </div>
+
+        <div class="stem-card" id="lblStem">Loading problem...</div>
+
+        <div class="instruction-banner" id="lblInstruction">
+          Scale the vectors so the incoming purple and orange components combine into the resultant blue vector.
+        </div>
+
+        <!-- Calculations Card (Revealed after Diagram is verified in Stage 2) -->
+        <div class="calc-card" id="calcCard" style="display: none;">
+          <div class="calc-header">
+            <span class="calc-title" id="calcTitle">Calculations (nearest 0.1)</span>
+            <div class="unit-toolbar">
+              <span class="unit-tip">Insert:</span>
+              <button type="button" class="btn-tool" id="btnDot" title="Insert dot (⋅)">⋅</button>
+              <button type="button" class="btn-tool" id="btnDeg" title="Insert degree (°)">°</button>
+            </div>
+          </div>
+
+          <div class="inputs-grid" id="inputsGrid"></div>
+        </div>
+
+        <div class="actions">
+          <button class="action-btn btn-check" id="btnCheck">Check Diagram</button>
+          <button class="action-btn btn-try" id="btnTryAgain" style="display:none;">Try Again</button>
+          <button class="action-btn btn-next" id="btnNext" style="display:none;">Next Problem</button>
+        </div>
+
+        <div class="warning-card" id="warningCard"></div>
+        <div class="feedback-card" id="feedbackCard"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ANCHOR_LENGTH = 140;
+    const SNAP_TOLERANCE_DEG = 12;
+    const ARC_RADIUS = 38;
+
+    let stage = 1; 
+    let subStep = 'DIAGRAM'; // 'DIAGRAM' or 'CALCS'
+    let s1BlueCount = 0;
+    let s1CompCount = 0;
+    let s2BlueCount = 0;
+    let s2CompCount = 0;
+
+    let correctCount = 0;
+    let incorrectCount = 0;
+    let currentProblem = null;
+    let attemptLogged = false;
+    let lastFocusedInput = null;
+
+    let stateA = { x: 0, y: 140, len: 140, angleRad: Math.PI / 2 };
+    let stateB = { y: 50 };
+    let stateC = { x: 50 };
+    let activeDrag = null;
+
+    const svg = document.getElementById('svgCanvas');
+    const vecA = document.getElementById('vecA'), handleA = document.getElementById('handleA');
+    const vecB = document.getElementById('vecB'), handleB = document.getElementById('handleB');
+    const vecC = document.getElementById('vecC'), handleC = document.getElementById('handleC');
+    const projLineX = document.getElementById('projLineX'), projLineY = document.getElementById('projLineY');
+    const angleArc = document.getElementById('angleArc'), angleLabel = document.getElementById('angleLabel');
+    const ghostA = document.getElementById('ghostA'), ghostB = document.getElementById('ghostB'), ghostC = document.getElementById('ghostC');
+    const lblStem = document.getElementById('lblStem'), lblProblemId = document.getElementById('lblProblemId');
+    const lblCorrect = document.getElementById('lblCorrect'), lblIncorrect = document.getElementById('lblIncorrect');
+    const lblStageBadge = document.getElementById('lblStageBadge'), lblStageProgress = document.getElementById('lblStageProgress');
+    const lblInstruction = document.getElementById('lblInstruction');
+    const calcCard = document.getElementById('calcCard'), inputsGrid = document.getElementById('inputsGrid');
+    const btnCheck = document.getElementById('btnCheck'), btnTryAgain = document.getElementById('btnTryAgain'), btnNext = document.getElementById('btnNext');
+    const btnDot = document.getElementById('btnDot'), btnDeg = document.getElementById('btnDeg');
+    const feedbackCard = document.getElementById('feedbackCard'), warningCard = document.getElementById('warningCard');
+
+    const QUAD_CONFIGS = [
+      { name: "N of E", altName: "E of N", xSign: 1,  ySign: -1, bTravel: "North", cTravel: "East",  bTailY: 1,  cTailX: -1 },
+      { name: "S of E", altName: "E of S", xSign: 1,  ySign: 1,  bTravel: "South", cTravel: "East",  bTailY: -1, cTailX: -1 },
+      { name: "N of W", altName: "W of N", xSign: -1, ySign: -1, bTravel: "North", cTravel: "West",  bTailY: 1,  cTailX: 1  },
+      { name: "S of W", altName: "W of S", xSign: -1, ySign: 1,  bTravel: "South", cTravel: "West",  bTailY: -1, cTailX: 1  }
+    ];
+
+    function insertAtCursor(char) {
+      if (!lastFocusedInput) {
+        const first = inputsGrid.querySelector('input');
+        if (first) lastFocusedInput = first;
+      }
+      if (lastFocusedInput) {
+        lastFocusedInput.focus();
+        const start = lastFocusedInput.selectionStart || 0;
+        const end = lastFocusedInput.selectionEnd || 0;
+        const val = lastFocusedInput.value;
+        lastFocusedInput.value = val.substring(0, start) + char + val.substring(end);
+        lastFocusedInput.selectionStart = lastFocusedInput.selectionEnd = start + char.length;
+      }
+    }
+
+    btnDot.addEventListener('click', () => insertAtCursor("⋅"));
+    btnDeg.addEventListener('click', () => insertAtCursor("°"));
+
+    function initProblem() {
+      attemptLogged = false;
+      subStep = 'DIAGRAM';
+      feedbackCard.style.display = 'none';
+      warningCard.style.display = 'none';
+      calcCard.style.display = 'none';
+      btnCheck.textContent = "Check Diagram";
+      btnCheck.style.display = 'block';
+      btnTryAgain.style.display = 'none';
+      btnNext.style.display = 'none';
+      hideGhosts();
+
+      let mode;
+      if (stage === 1) {
+        if (s1BlueCount < 2 && s1CompCount < 2) {
+          mode = Math.random() < 0.5 ? 'GIVEN_BLUE' : 'GIVEN_COMPONENTS';
+        } else if (s1BlueCount < 2) {
+          mode = 'GIVEN_BLUE';
+        } else {
+          mode = 'GIVEN_COMPONENTS';
+        }
+        lblStageBadge.textContent = "Stage 1: Vector Diagram";
+        lblStageProgress.textContent = `Stage 1: [Blue Given: ${s1BlueCount}/2] • [Components Given: ${s1CompCount}/2]`;
+      } else {
+        if (s2BlueCount < 2 && s2CompCount < 2) {
+          mode = Math.random() < 0.5 ? 'GIVEN_BLUE' : 'GIVEN_COMPONENTS';
+        } else if (s2BlueCount < 2) {
+          mode = 'GIVEN_BLUE';
+        } else {
+          mode = 'GIVEN_COMPONENTS';
+        }
+        lblStageBadge.textContent = "Stage 2: Momentum Calculations";
+        lblStageProgress.textContent = `Stage 2: [Blue Given: ${s2BlueCount}/2] • [Components Given: ${s2CompCount}/2]`;
+      }
+
+      const quad = QUAD_CONFIGS[Math.floor(Math.random() * QUAD_CONFIGS.length)];
+      const angleDeg = Math.floor(Math.random() * 9) * 5 + 25; // 25° to 65° in 5° steps
+      const compAngleDeg = 90 - angleDeg;
+      const angleRad = (angleDeg * Math.PI) / 180;
+      const angleFormatted = `${angleDeg.toFixed(1)}°`;
+      const compAngleFormatted = `${compAngleDeg.toFixed(1)}°`;
+
+      const momentumA = (Math.floor(Math.random() * 80) + 120) / 10;
+      const pC = momentumA * Math.cos(angleRad); // Horizontal (Orange)
+      const pB = momentumA * Math.sin(angleRad); // Vertical (Purple)
+
+      const targetAx = quad.xSign * ANCHOR_LENGTH * Math.cos(angleRad);
+      const targetAy = quad.ySign * ANCHOR_LENGTH * Math.sin(angleRad);
+      const targetBy = quad.bTailY * (ANCHOR_LENGTH * Math.sin(angleRad));
+      const targetCx = quad.cTailX * (ANCHOR_LENGTH * Math.cos(angleRad));
+
+      currentProblem = {
+        id: Math.floor(10000000 + Math.random() * 90000000),
+        mode,
+        quad,
+        angleDeg,
+        compAngleDeg,
+        angleFormatted,
+        compAngleFormatted,
+        momentumA,
+        pB,
+        pC,
+        targetA: {
+          x: targetAx,
+          y: targetAy,
+          len: ANCHOR_LENGTH,
+          bearingStrPrimary: `[${angleFormatted} ${quad.name}]`,
+          bearingStrAlt: `[${compAngleFormatted} ${quad.altName}]`
+        },
+        targetB: {
+          y: targetBy,
+          travelDir: quad.bTravel,
+          len: Math.abs(targetBy)
+        },
+        targetC: {
+          x: targetCx,
+          travelDir: quad.cTravel,
+          len: Math.abs(targetCx)
+        }
+      };
+
+      lblProblemId.textContent = `ID: ${currentProblem.id}`;
+
+      if (mode === 'GIVEN_BLUE') {
+        lblInstruction.innerHTML = "The blue resultant vector is fixed. Drag the purple and orange handles along the axes to match the incoming components.";
+        lblStem.innerHTML = `Two objects collide and stick together at the center.<br>
+        • <strong>The blue combined mass</strong> exits with <span class="nowrap"><strong>${momentumA.toFixed(1)} kg⋅m/s [${angleFormatted} ${quad.name}]</strong></span> of momentum.<br>
+        • <strong>The purple object</strong> was travelling straight <strong>${quad.bTravel}</strong> towards the center.<br>
+        • <strong>The orange object</strong> was travelling straight <strong>${quad.cTravel}</strong> towards the center.`;
+
+        handleA.classList.add('handle-locked');
+        handleB.classList.remove('handle-locked');
+        handleC.classList.remove('handle-locked');
+
+        stateA.x = targetAx;
+        stateA.y = targetAy;
+        stateA.len = ANCHOR_LENGTH;
+        stateA.angleRad = Math.atan2(targetAy, targetAx);
+        updateVecA();
+
+        stateB.y = quad.bTailY * 50;
+        updateVecB();
+        stateC.x = quad.cTailX * 50;
+        updateVecC();
+
+      } else {
+        lblInstruction.innerHTML = "The incoming purple and orange vectors are fixed. Aim and stretch the blue handle to draw the resultant combined momentum.";
+        lblStem.innerHTML = `Two objects collide and stick together at the center.<br>
+        • <strong>The purple object</strong> travels straight <strong>${quad.bTravel}</strong> with <span class="nowrap"><strong>${pB.toFixed(1)} kg⋅m/s</strong></span> towards the center.<br>
+        • <strong>The orange object</strong> travels straight <strong>${quad.cTravel}</strong> with <span class="nowrap"><strong>${pC.toFixed(1)} kg⋅m/s</strong></span> towards the center.<br>
+        • The two objects lock together upon impact.`;
+
+        handleA.classList.remove('handle-locked');
+        handleB.classList.add('handle-locked');
+        handleC.classList.add('handle-locked');
+
+        stateB.y = targetBy;
+        updateVecB();
+        stateC.x = targetCx;
+        updateVecC();
+
+        // Put Blue initially at 35° W of S (125° in standard SVG coordinates) to avoid overlapping Purple or Orange
+        const initialBlueAngleDeg = 125; 
+        stateA.len = 65;
+        stateA.angleRad = (initialBlueAngleDeg * Math.PI) / 180;
+        stateA.x = stateA.len * Math.cos(stateA.angleRad);
+        stateA.y = stateA.len * Math.sin(stateA.angleRad);
+        updateVecA();
+      }
+
+      buildInputs();
+    }
+
+    function buildInputs() {
+      inputsGrid.innerHTML = '';
+      if (stage === 1) return;
+
+      if (currentProblem.mode === 'GIVEN_BLUE') {
+        inputsGrid.innerHTML = `
+          <div class="input-group">
+            <label class="label-purple">Purple Momentum (p):</label>
+            <input type="text" id="inpPb" placeholder="e.g. 8.3 kg⋅m/s" autocomplete="off" />
+          </div>
+          <div class="input-group">
+            <label class="label-orange">Orange Momentum (p):</label>
+            <input type="text" id="inpPc" placeholder="e.g. 11.9 kg⋅m/s" autocomplete="off" />
+          </div>
+        `;
+      } else {
+        inputsGrid.innerHTML = `
+          <div class="input-group">
+            <label class="label-blue">Blue Momentum Magnitude (p):</label>
+            <input type="text" id="inpPa" placeholder="e.g. 14.5 kg⋅m/s" autocomplete="off" />
+          </div>
+          <div class="input-group">
+            <label class="label-blue">Blue Direction / Bearing:</label>
+            <input type="text" id="inpDirA" placeholder="e.g. [35.0° N of W]" autocomplete="off" />
+          </div>
+        `;
+      }
+
+      inputsGrid.querySelectorAll('input').forEach(inp => {
+        inp.addEventListener('focus', () => { lastFocusedInput = inp; });
+      });
+    }
+
+    function getPointerPos(e) {
+      const rect = svg.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return {
+        x: (clientX - rect.left) * (400 / rect.width) - 200,
+        y: (clientY - rect.top) * (400 / rect.height) - 200
+      };
+    }
+
+    function setupDrag(handle, key) {
+      handle.addEventListener('pointerdown', (e) => {
+        if (handle.classList.contains('handle-locked')) return;
+        activeDrag = key;
+        handle.setPointerCapture(e.pointerId);
+      });
+    }
+
+    setupDrag(handleA, 'A');
+    setupDrag(handleB, 'B');
+    setupDrag(handleC, 'C');
+
+    window.addEventListener('pointermove', (e) => {
+      if (!activeDrag) return;
+      const pos = getPointerPos(e);
+
+      if (activeDrag === 'A') {
+        let len = Math.hypot(pos.x, pos.y);
+        len = Math.max(35, Math.min(185, len));
+        stateA.len = len;
+        stateA.angleRad = Math.atan2(pos.y, pos.x);
+        stateA.x = len * Math.cos(stateA.angleRad);
+        stateA.y = len * Math.sin(stateA.angleRad);
+        updateVecA();
+      } else if (activeDrag === 'B') {
+        let y = pos.y;
+        if (Math.abs(y) < 25) y = Math.sign(y || 1) * 25;
+        y = Math.max(-185, Math.min(185, y));
+        stateB.y = y;
+        updateVecB();
+      } else if (activeDrag === 'C') {
+        let x = pos.x;
+        if (Math.abs(x) < 25) x = Math.sign(x || 1) * 25;
+        x = Math.max(-185, Math.min(185, x));
+        stateC.x = x;
+        updateVecC();
+      }
+    });
+
+    window.addEventListener('pointerup', () => { activeDrag = null; });
+    window.addEventListener('pointercancel', () => { activeDrag = null; });
+
+    function updateVecA() {
+      vecA.setAttribute('x2', stateA.x);
+      vecA.setAttribute('y2', stateA.y);
+      handleA.setAttribute('cx', stateA.x);
+      handleA.setAttribute('cy', stateA.y);
+
+      projLineX.setAttribute('x1', stateA.x); projLineX.setAttribute('y1', 0);
+      projLineX.setAttribute('x2', stateA.x); projLineX.setAttribute('y2', stateA.y);
+      projLineY.setAttribute('x1', 0);         projLineY.setAttribute('y1', stateA.y);
+      projLineY.setAttribute('x2', stateA.x); projLineY.setAttribute('y2', stateA.y);
+
+      // Do NOT show the angle in the sketch when students are asked to calculate it (GIVEN_COMPONENTS)
+      const hideAngle = (currentProblem && currentProblem.mode === 'GIVEN_COMPONENTS');
+
+      const refAngleRad = Math.atan2(Math.abs(stateA.y), Math.abs(stateA.x));
+      const refAngleDeg = Math.round((refAngleRad * 180) / Math.PI);
+
+      if (!hideAngle && Math.abs(stateA.x) > 1 && Math.abs(stateA.y) > 1) {
+        const startX = stateA.x >= 0 ? ARC_RADIUS : -ARC_RADIUS;
+        const startY = 0;
+        const endX = ARC_RADIUS * Math.cos(stateA.angleRad);
+        const endY = ARC_RADIUS * Math.sin(stateA.angleRad);
+
+        const sweepFlag = (Math.sign(stateA.x) * Math.sin(stateA.angleRad) > 0) ? 1 : 0;
+        angleArc.setAttribute('d', `M ${startX} ${startY} A ${ARC_RADIUS} ${ARC_RADIUS} 0 0 ${sweepFlag} ${endX} ${endY}`);
+        angleArc.style.display = 'inline';
+
+        const labelR = ARC_RADIUS + 16;
+        const labelX = (stateA.x >= 0 ? 1 : -1) * labelR * Math.cos(refAngleRad / 2);
+        const labelY = (stateA.y >= 0 ? 1 : -1) * labelR * Math.sin(refAngleRad / 2);
+        angleLabel.setAttribute('x', labelX);
+        angleLabel.setAttribute('y', labelY);
+        angleLabel.textContent = `${refAngleDeg}°`;
+        angleLabel.style.display = 'inline';
+      } else {
+        angleArc.style.display = 'none';
+        angleLabel.style.display = 'none';
+      }
+    }
+
+    function updateVecB() {
+      vecB.setAttribute('x1', 0);
+      vecB.setAttribute('y1', stateB.y);
+      vecB.setAttribute('x2', 0);
+      vecB.setAttribute('y2', 0);
+
+      handleB.setAttribute('cx', 0);
+      handleB.setAttribute('cy', stateB.y);
+    }
+
+    function updateVecC() {
+      vecC.setAttribute('x1', stateC.x);
+      vecC.setAttribute('y1', 0);
+      vecC.setAttribute('x2', 0);
+      vecC.setAttribute('y2', 0);
+
+      handleC.setAttribute('cx', stateC.x);
+      handleC.setAttribute('cy', 0);
+    }
+
+    function showGhosts() {
+      const { targetA, targetB, targetC } = currentProblem;
+      ghostA.setAttribute('x1', 0); ghostA.setAttribute('y1', 0);
+      ghostA.setAttribute('x2', targetA.x); ghostA.setAttribute('y2', targetA.y);
+      ghostA.style.display = 'inline';
+
+      ghostB.setAttribute('x1', 0); ghostB.setAttribute('y1', targetB.y);
+      ghostB.setAttribute('x2', 0); ghostB.setAttribute('y2', 0);
+      ghostB.style.display = 'inline';
+
+      ghostC.setAttribute('x1', targetC.x); ghostC.setAttribute('y1', 0);
+      ghostC.setAttribute('x2', 0); ghostC.setAttribute('y2', 0);
+      ghostC.style.display = 'inline';
+    }
+
+    function hideGhosts() {
+      ghostA.style.display = 'none';
+      ghostB.style.display = 'none';
+      ghostC.style.display = 'none';
+    }
+
+    function validateQuantity(inputElem, expectedUnit, fieldLabel, expectedVal) {
+      inputElem.classList.remove('field-warn');
+      const raw = inputElem.value.trim();
+      if (!raw) {
+        inputElem.classList.add('field-warn');
+        return { empty: true, msg: `Please fill in a value for <strong>${fieldLabel}</strong>.` };
+      }
+
+      const match = raw.match(/^([+-]?\d+(?:\.\d+)?)/);
+      if (!match) {
+        inputElem.classList.add('field-warn');
+        return { error: true, msg: `"${raw}" does not start with a valid number.` };
+      }
+
+      const numStr = match[1];
+      const val = parseFloat(numStr);
+      const rest = raw.slice(match[0].length);
+
+      const normalizedRest = rest.replace(/[·•]/g, '⋅').trim();
+      const normalizedExpected = expectedUnit.replace(/[·•]/g, '⋅');
+
+      if (!normalizedRest) {
+        inputElem.classList.add('field-warn');
+        return {
+          unitWarn: true,
+          msg: `Missing unit on <strong>${fieldLabel}</strong>! You must write <strong>${expectedUnit}</strong> (click the [ ⋅ ] button).`
+        };
+      }
+
+      if (normalizedRest !== normalizedExpected) {
+        inputElem.classList.add('field-warn');
+        return {
+          unitWarn: true,
+          msg: `Unit warning on <strong>${fieldLabel}</strong>: You entered "<em>${rest.trim()}</em>". The required unit is <strong>${expectedUnit}</strong>.`
+        };
+      }
+
+      if (numStr.includes('.') && numStr.split('.')[1].length > 1) {
+        inputElem.classList.add('field-warn');
+        return {
+          roundingWarn: true,
+          msg: `Please round <strong>${fieldLabel}</strong> to the nearest <strong>1 decimal place</strong> (tenths, e.g. <strong>${val.toFixed(1)}</strong> instead of <strong>${numStr}</strong>).`
+        };
+      }
+
+      const expectedRounded = Math.round(expectedVal * 10) / 10;
+      const diff = Math.abs(val - expectedRounded);
+      if (diff > 0.001 && diff <= 0.15) {
+        inputElem.classList.add('field-warn');
+        return {
+          roundingWarn: true,
+          msg: `Check your rounding on <strong>${fieldLabel}</strong>: Your value (<strong>${val}</strong>) is very close, but check your rounding rules for the tenths place.`
+        };
+      }
+
+      return { valid: true, val, expectedRounded };
+    }
+
+    function validateDirection(inputElem, quad, angleDeg, compAngleDeg) {
+      inputElem.classList.remove('field-warn');
+      let raw = inputElem.value.trim();
+      if (!raw) {
+        inputElem.classList.add('field-warn');
+        return { empty: true, msg: "Please enter the direction / bearing for the blue piece." };
+      }
+
+      let clean = raw;
+      if (clean.startsWith('[') && clean.endsWith(']')) {
+        clean = clean.slice(1, -1).trim();
+      }
+
+      if (!clean.includes('°')) {
+        inputElem.classList.add('field-warn');
+        return {
+          warn: true,
+          msg: `Missing degree symbol in direction: You entered "<em>${raw}</em>". Click the [ ° ] button to insert the degree symbol (e.g. <strong>[35.0° ${quad.name}]</strong>).`
+        };
+      }
+
+      if (/[a-z]/.test(clean.replace('of', ''))) {
+        inputElem.classList.add('field-warn');
+        return {
+          warn: true,
+          msg: `Capitalization notice: Direction compass headings must be capitalized (e.g. <strong>${quad.name}</strong> or <strong>${quad.altName}</strong>, not lowercase).`
+        };
+      }
+
+      const match = clean.match(/^([+-]?\d+(?:\.\d+)?)\s*°\s+([A-Z])\s+of\s+([A-Z])$/);
+      if (!match) {
+        inputElem.classList.add('field-warn');
+        return {
+          warn: true,
+          msg: `Format notice: Direction must be formatted with single spaces as <strong>[35.0° ${quad.name}]</strong> or <strong>[55.0° ${quad.altName}]</strong>.`
+        };
+      }
+
+      const valAngle = parseFloat(match[1]);
+      const enteredHeading = `${match[2]} of ${match[3]}`;
+
+      if (match[1].includes('.') && match[1].split('.')[1].length > 1) {
+        inputElem.classList.add('field-warn');
+        return {
+          warn: true,
+          msg: `Please round your direction angle to the nearest <strong>1 decimal place</strong> (e.g. <strong>${valAngle.toFixed(1)}°</strong>).`
+        };
+      }
+
+      let matchesPrimary = (enteredHeading === quad.name);
+      let matchesAlt = (enteredHeading === quad.altName);
+
+      if (!matchesPrimary && !matchesAlt) {
+        inputElem.classList.add('field-warn');
+        return {
+          warn: true,
+          msg: `Bearing mismatch: For this quadrant, the heading must be either <strong>${quad.name}</strong> or <strong>${quad.altName}</strong>.`
+        };
+      }
+
+      let targetAngle = matchesPrimary ? angleDeg : compAngleDeg;
+      let targetRounded = Math.round(targetAngle * 10) / 10;
+      let diff = Math.abs(valAngle - targetRounded);
+
+      if (diff > 0.001 && diff <= 0.2) {
+        inputElem.classList.add('field-warn');
+        return {
+          warn: true,
+          msg: `Check your rounding on the direction angle: Your value (${valAngle}°) is very close to the true bearing.`
+        };
+      }
+
+      if (diff > 0.2) {
+        return { incorrect: true, msg: `The direction angle (${valAngle}°) is incorrect.` };
+      }
+
+      return { valid: true };
+    }
+
+    function evaluateDiagram() {
+      const { targetA, targetB, targetC, quad, mode } = currentProblem;
+      let diagErrors = [];
+
+      if (mode === 'GIVEN_BLUE') {
+        const isPurpleSignCorrect = Math.sign(stateB.y) === Math.sign(targetB.y);
+        const lenB = Math.abs(stateB.y);
+        const diffB = lenB - targetB.len;
+        const isPurpleScaleCorrect = isPurpleSignCorrect && (Math.abs(diffB) / targetB.len <= 0.20);
+
+        const isOrangeSignCorrect = Math.sign(stateC.x) === Math.sign(targetC.x);
+        const lenC = Math.abs(stateC.x);
+        const diffC = lenC - targetC.len;
+        const isOrangeScaleCorrect = isOrangeSignCorrect && (Math.abs(diffC) / targetC.len <= 0.20);
+
+        if (!isPurpleSignCorrect) {
+          diagErrors.push(`Purple must point ${quad.bTravel} into the center`);
+        } else if (!isPurpleScaleCorrect) {
+          if (diffB > 0) {
+            diagErrors.push(`Purple vector is <strong>too long</strong> (scale it down to match the vertical projection)`);
+          } else {
+            diagErrors.push(`Purple vector is <strong>too short</strong> (stretch it out to match the vertical projection)`);
+          }
+        }
+
+        if (!isOrangeSignCorrect) {
+          diagErrors.push(`Orange must point ${quad.cTravel} into the center`);
+        } else if (!isOrangeScaleCorrect) {
+          if (diffC > 0) {
+            diagErrors.push(`Orange vector is <strong>too long</strong> (scale it down to match the horizontal projection)`);
+          } else {
+            diagErrors.push(`Orange vector is <strong>too short</strong> (stretch it out to match the horizontal projection)`);
+          }
+        }
+
+        return { success: isPurpleScaleCorrect && isOrangeScaleCorrect, errors: diagErrors };
+
+      } else {
+        const curAx = stateA.x;
+        const curAy = stateA.y;
+        const dotA = (curAx * targetA.x + curAy * targetA.y) / (stateA.len * targetA.len);
+        const aAngleDiffDeg = (Math.acos(Math.max(-1, Math.min(1, dotA))) * 180) / Math.PI;
+        const isAngleACorrect = aAngleDiffDeg <= 4.0;
+
+        const diffLenA = stateA.len - targetA.len;
+        const isScaleACorrect = Math.abs(diffLenA) / targetA.len <= 0.20;
+
+        if (!isAngleACorrect) {
+          diagErrors.push(`Aim the blue resultant into the ${quad.name} quadrant`);
+        }
+        if (!isScaleACorrect) {
+          if (diffLenA > 0) {
+            diagErrors.push(`Blue resultant vector is <strong>too long</strong> (scale it down to match the component projection box)`);
+          } else {
+            diagErrors.push(`Blue resultant vector is <strong>too short</strong> (stretch it out to reach the corner of the component projection box)`);
+          }
+        }
+
+        return { success: isAngleACorrect && isScaleACorrect, errors: diagErrors };
+      }
+    }
+
+    btnCheck.addEventListener('click', () => {
+      warningCard.style.display = 'none';
+      const { quad, angleDeg, compAngleDeg, pB, pC, momentumA, mode } = currentProblem;
+
+      // STEP 1: Evaluate Diagram
+      if (subStep === 'DIAGRAM') {
+        const diagResult = evaluateDiagram();
+
+        if (!diagResult.success) {
+          if (!attemptLogged) {
+            incorrectCount++;
+            lblIncorrect.textContent = incorrectCount;
+            attemptLogged = true;
+          }
+          showGhosts();
+          feedbackCard.className = 'feedback-card error';
+          let hint = "<strong>Not quite complete yet:</strong><br>";
+          diagResult.errors.forEach(err => hint += `• ${err}.<br>`);
+          feedbackCard.innerHTML = hint;
+          feedbackCard.style.display = 'block';
+          btnCheck.style.display = 'none';
+          btnTryAgain.style.display = 'block';
+          return;
+        }
+
+        // Diagram is Correct!
+        if (stage === 1) {
+          // In Stage 1, diagram correctness completes the problem
+          if (!attemptLogged) {
+            correctCount++;
+            lblCorrect.textContent = correctCount;
+            if (mode === 'GIVEN_BLUE') s1BlueCount++;
+            else s1CompCount++;
+            attemptLogged = true;
+          }
+          showGhosts();
+          feedbackCard.className = 'feedback-card success';
+          let successMsg = `<strong>Superb!</strong><br>All vectors are correctly balanced.`;
+          if (s1BlueCount >= 2 && s1CompCount >= 2) {
+            stage = 2;
+            successMsg += `<br>🎉 <strong>Stage 1 Complete! Advancing to Stage 2: Momentum Calculations!</strong>`;
+          }
+          feedbackCard.innerHTML = successMsg;
+          feedbackCard.style.display = 'block';
+          btnCheck.style.display = 'none';
+          btnNext.style.display = 'block';
+          lblStageProgress.textContent = `Stage 1: [Blue Given: ${s1BlueCount}/2] • [Components Given: ${s1CompCount}/2]`;
+          return;
+        }
+
+        // In Stage 2: Diagram is verified, now unlock and transition to Calculations step!
+        subStep = 'CALCS';
+        feedbackCard.className = 'feedback-card success';
+        feedbackCard.innerHTML = `✓ <strong>Diagram verified!</strong> Now calculate the required values below.`;
+        feedbackCard.style.display = 'block';
+
+        // Lock handles to prevent accidental shifts while typing
+        handleA.classList.add('handle-locked');
+        handleB.classList.add('handle-locked');
+        handleC.classList.add('handle-locked');
+
+        calcCard.style.display = 'block';
+        btnCheck.textContent = "Check Calculations";
+
+        // Focus first calculation input
+        const firstInp = inputsGrid.querySelector('input');
+        if (firstInp) firstInp.focus();
+        return;
+      }
+
+      // STEP 2: Evaluate Calculations (Stage 2)
+      let parsed = {};
+      if (mode === 'GIVEN_BLUE') {
+        const inpPb = document.getElementById('inpPb');
+        const inpPc = document.getElementById('inpPc');
+        const resPb = validateQuantity(inpPb, "kg⋅m/s", "Purple Momentum", pB);
+        const resPc = validateQuantity(inpPc, "kg⋅m/s", "Orange Momentum", pC);
+
+        const anyWarn = [resPb, resPc].find(r => r.unitWarn || r.roundingWarn || r.error || r.empty);
+        if (anyWarn) {
+          warningCard.innerHTML = `⚠️ <strong>Check Your Entry:</strong> ${anyWarn.msg} <br><small>No incorrect attempt was recorded on your score. Please adjust and check again.</small>`;
+          warningCard.style.display = 'block';
+          return;
+        }
+        parsed.pb = resPb.val;
+        parsed.pc = resPc.val;
+      } else {
+        const inpPa = document.getElementById('inpPa');
+        const inpDirA = document.getElementById('inpDirA');
+        const resPa = validateQuantity(inpPa, "kg⋅m/s", "Blue Momentum Magnitude", momentumA);
+        const resDir = validateDirection(inpDirA, quad, angleDeg, compAngleDeg);
+
+        if (resPa.unitWarn || resPa.roundingWarn || resPa.error || resPa.empty || resDir.warn || resDir.empty) {
+          const warningMsg = resPa.msg || resDir.msg;
+          warningCard.innerHTML = `⚠️ <strong>Check Your Entry:</strong> ${warningMsg} <br><small>No incorrect attempt was recorded on your score. Please adjust and check again.</small>`;
+          warningCard.style.display = 'block';
+          return;
+        }
+        parsed.pa = resPa.val;
+        parsed.dirValid = !resDir.incorrect;
+      }
+
+      let calcsSuccess = true;
+      let calcErrors = [];
+
+      if (mode === 'GIVEN_BLUE') {
+        const expectedPb = Math.round(pB * 10) / 10;
+        const expectedPc = Math.round(pC * 10) / 10;
+        if (Math.abs(parsed.pb - expectedPb) > 0.05) {
+          calcsSuccess = false;
+          calcErrors.push("Purple momentum value is incorrect");
+        }
+        if (Math.abs(parsed.pc - expectedPc) > 0.05) {
+          calcsSuccess = false;
+          calcErrors.push("Orange momentum value is incorrect");
+        }
+      } else {
+        const expectedPa = Math.round(momentumA * 10) / 10;
+        if (Math.abs(parsed.pa - expectedPa) > 0.05) {
+          calcsSuccess = false;
+          calcErrors.push("Blue momentum magnitude is incorrect");
+        }
+        if (!parsed.dirValid) {
+          calcsSuccess = false;
+          calcErrors.push("Blue direction / bearing angle is incorrect");
+        }
+      }
+
+      if (!attemptLogged) {
+        if (calcsSuccess) {
+          correctCount++;
+          lblCorrect.textContent = correctCount;
+          if (mode === 'GIVEN_BLUE') s2BlueCount++;
+          else s2CompCount++;
+        } else {
+          incorrectCount++;
+          lblIncorrect.textContent = incorrectCount;
+        }
+        attemptLogged = true;
+      }
+
+      showGhosts();
+
+      feedbackCard.style.display = 'block';
+      if (calcsSuccess) {
+        feedbackCard.className = 'feedback-card success';
+        let successMsg = `<strong>Superb!</strong><br>All momentum vectors and calculation values are accurate.`;
+
+        if (s2BlueCount >= 2 && s2CompCount >= 2) {
+          successMsg += `<br>🏆 <strong>Outstanding Work! You have mastered 2D Inelastic Collisions!</strong>`;
+        }
+
+        feedbackCard.innerHTML = successMsg;
+        btnCheck.style.display = 'none';
+        btnNext.style.display = 'block';
+      } else {
+        feedbackCard.className = 'feedback-card error';
+        let hint = "<strong>Not quite complete yet:</strong><br>";
+        calcErrors.forEach(err => hint += `• ${err}.<br>`);
+        feedbackCard.innerHTML = hint;
+        btnCheck.style.display = 'none';
+        btnTryAgain.style.display = 'block';
+      }
+
+      lblStageProgress.textContent = `Stage 2: [Blue Given: ${s2BlueCount}/2] • [Components Given: ${s2CompCount}/2]`;
+    });
+
+    btnTryAgain.addEventListener('click', () => {
+      hideGhosts();
+      feedbackCard.style.display = 'none';
+      warningCard.style.display = 'none';
+      btnTryAgain.style.display = 'none';
+      btnNext.style.display = 'none';
+      btnCheck.style.display = 'block';
+
+      if (subStep === 'DIAGRAM') {
+        btnCheck.textContent = "Check Diagram";
+      } else {
+        btnCheck.textContent = "Check Calculations";
+      }
+    });
+
+    btnNext.addEventListener('click', initProblem);
+
+    initProblem();
+  </script>
+</body>
+</html>
